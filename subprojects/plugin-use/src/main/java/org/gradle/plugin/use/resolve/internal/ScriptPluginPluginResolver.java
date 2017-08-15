@@ -24,7 +24,6 @@ import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.project.ProjectRegistry;
 import org.gradle.configuration.ScriptPlugin;
 import org.gradle.configuration.ScriptPluginFactory;
-import org.gradle.internal.hash.HashUtil;
 import org.gradle.internal.resource.TextResourceLoader;
 import org.gradle.plugin.use.PluginId;
 import org.objectweb.asm.ClassWriter;
@@ -36,6 +35,7 @@ import javax.inject.Inject;
 import java.net.URL;
 import java.net.URLClassLoader;
 
+import static org.gradle.internal.hash.HashUtil.createHash;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
@@ -61,14 +61,11 @@ public class ScriptPluginPluginResolver implements PluginResolver {
             result.notFound(getDescription(), "only script plugin requests are supported by this source");
             return;
         }
-        // TODO:rbo Make all conditions throw like isApply
         if (pluginRequest.getModule() != null) {
-            result.notFound(getDescription(), "explicit artifact coordinates are not supported by this source");
-            return;
+            throw new InvalidUserDataException("explicit artifact coordinates are not supported for script plugins applied using the plugins block");
         }
         if (pluginRequest.getVersion() != null) {
-            result.notFound(getDescription(), "explicit version is not supported by this source");
-            return;
+            throw new InvalidUserDataException("explicit version is not supported for script plugins applied using the plugins block");
         }
         if (!pluginRequest.isApply()) {
             throw new InvalidUserDataException("apply false is not supported for script plugins applied using the plugins block");
@@ -172,8 +169,8 @@ public class ScriptPluginPluginResolver implements PluginResolver {
 
         private Class<?> defineScriptPluginLoaderClass(ContextAwarePluginRequest pluginRequest, String displayName) {
 
-            String scriptContent = textResourceLoader.loadUri(pluginRequest.getDisplayName(), pluginRequest.getScriptUri()).getText();
-            String scriptContentHash = HashUtil.createHash(scriptContent, "SHA1").asCompactString();
+            String scriptContent = scriptContentFor(pluginRequest);
+            String scriptContentHash = createHash(scriptContent, "SHA1").asCompactString();
             String classSimpleName = loaderClassSimpleNameFor(scriptContentHash);
 
             Class<?> syntheticLoaderClass = alreadyDefined(classSimpleName);
@@ -195,6 +192,10 @@ public class ScriptPluginPluginResolver implements PluginResolver {
             cw.visitEnd();
             byte[] bytes = cw.toByteArray();
             return defineClass(SYNTHETIC_LOADER_PACKAGE_NAME + "." + classSimpleName, bytes, 0, bytes.length);
+        }
+
+        private String scriptContentFor(ContextAwarePluginRequest pluginRequest) {
+            return textResourceLoader.loadUri(pluginRequest.getDisplayName(), pluginRequest.getScriptUri()).getText();
         }
 
         @Nullable
