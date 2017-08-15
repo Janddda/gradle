@@ -169,10 +169,10 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
     private final TestLoggingContainer testLogging;
     private final DefaultJavaForkOptions forkOptions;
     private final DefaultTestFilter filter;
-    private final DirectoryVar binResultsDir;
 
     private TestExecuter testExecuter;
     private FileCollection testClassesDirs;
+    private File binResultsDir;
     private PatternFilterable patternSet;
     private boolean ignoreFailures;
     private FileCollection classpath;
@@ -199,8 +199,6 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
         reports.getHtml().setEnabled(true);
 
         filter = instantiator.newInstance(DefaultTestFilter.class);
-
-        binResultsDir = newOutputDirectory();
     }
 
     @Inject
@@ -1009,7 +1007,7 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
     @OutputDirectory
     @Incubating
     public File getBinResultsDir() {
-        return binResultsDir.getAsFile().getOrNull();
+        return binResultsDir;
     }
 
     /**
@@ -1019,18 +1017,7 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
      */
     @Incubating
     public void setBinResultsDir(File binResultsDir) {
-        this.binResultsDir.set(binResultsDir);
-    }
-
-    /**
-     * Sets the root folder for the test results in internal binary format.
-     *
-     * @param binResultsDir The provider of the root folder
-     * @since 4.2
-     */
-    @Incubating
-    public void setBinResultsDir(Provider<? extends Directory> binResultsDir) {
-        this.binResultsDir.set(binResultsDir);
+        this.binResultsDir = binResultsDir;
     }
 
     /**
